@@ -47,7 +47,7 @@ TEXT callbackasm1(SB), NOSPLIT|NOFRAME, $0
 
 	// Copy C arguments from original stack location to our frame
 	// Original args start at 304+4(SP) = 308(SP) (past our frame + original return addr)
-	// Copy to our frame at 36(SP)
+	// Copy to our frame at 48(SP)
 	// Copy 64 arguments (256 bytes, matching callbackMaxFrame = 64 * ptrSize)
 	MOVL 308(SP), AX
 	MOVL AX, 48(SP)
@@ -176,15 +176,14 @@ TEXT callbackasm1(SB), NOSPLIT|NOFRAME, $0
 	MOVL 556(SP), AX
 	MOVL AX, 296(SP)
 	MOVL 560(SP), AX
-	MOVL AX, 288(SP)
+	MOVL AX, 300(SP)
 
 	// Set up callbackArgs struct at 24(SP)
 	// struct callbackArgs {
-	//     index  uintptr  // offset 0
-	//     args   *byte    // offset 4
-	//     result uintptr  // offset 8 (4 words: result[0] + result[1] for
-	//                        64-bit returns + 2 spare, matching Go's
-	//                        callbackArgs.result [4]uintptr)
+	//     index  uintptr        // offset 0
+	//     args   unsafe.Pointer // offset 4
+	//     result [4]uintptr     // offset 8: result[0] and result[1] hold
+	//                            a 64-bit return, result[2:] are unused
 	// }
 	MOVL 16(SP), AX // callback index
 	MOVL AX, 24(SP) // callbackArgs.index
