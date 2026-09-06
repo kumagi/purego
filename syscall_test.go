@@ -74,12 +74,9 @@ func TestErrno(t *testing.T) {
 		t.Errorf("setErrno returned %d, wanted -1", r1)
 	}
 
-	libcName := "/usr/lib/libSystem.B.dylib"
-	if runtime.GOOS == "linux" {
-		// Reaching here on Linux means that this architecture has no assembly
-		// trampoline and goes through the C fallback in internal/cgo, which does
-		// report the libc errno.
-		libcName = "libc.so.6"
+	libcName, err := getSystemLibrary()
+	if err != nil {
+		t.Fatal(err)
 	}
 	libc, err := load.OpenLibrary(libcName)
 	if err != nil {
