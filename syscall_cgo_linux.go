@@ -10,8 +10,7 @@ import (
 )
 
 // syscallXABI0 is the C fallback; unlike the assembly trampolines it always
-// writes errno back into the a3 field of syscallArgs. Keep capturesErrno in
-// syscall_errno_saved.go in sync with this build constraint.
+// writes errno back into the a3 field of syscallArgs.
 var syscallXABI0 = uintptr(cgo.SyscallXABI0)
 
 func NewCallback(_ any) uintptr {

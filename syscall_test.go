@@ -25,8 +25,26 @@ func TestOS(t *testing.T) {
 	}
 }
 
+// errnoIsCaptured reports whether SyscallN returns the libc errno as its third
+// value on this platform. The darwin trampolines save errno into the args
+// block and so does the C fallback in internal/cgo, which the Linux
+// architectures that have no assembly trampoline have to use. The other
+// trampolines cannot, and clear the field instead, so SyscallN returns 0 there.
+func errnoIsCaptured() bool {
+	switch runtime.GOOS {
+	case "darwin":
+		return true
+	case "linux":
+		switch runtime.GOARCH {
+		case "mips", "mipsle", "mips64", "mips64le", "ppc64":
+			return true
+		}
+	}
+	return false
+}
+
 func TestErrno(t *testing.T) {
-	if !purego.CapturesErrno {
+	if !errnoIsCaptured() {
 		t.Skip("platform does not support returning errno from syscall")
 	}
 

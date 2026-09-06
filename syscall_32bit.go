@@ -18,6 +18,12 @@ const (
 // syscallArgs is the argument block handed to the syscall15 trampoline. On
 // platforms that go through internal/cgo it is passed to C as a
 // struct syscallArgs, so its layout must match the C ABI.
+//
+// The trampoline reports its results through this block: the return values go
+// to a1 and a2 and, where the platform captures errno, the error code goes to
+// a3. A trampoline that cannot capture errno must clear a3, which still holds
+// the caller's third argument, so that SyscallN never returns an input
+// argument as an error.
 type syscallArgs struct {
 	_ structs.HostLayout
 
@@ -91,8 +97,5 @@ func SyscallN(fn uintptr, args ...uintptr) (r1, r2, err uintptr) {
 	copy(floats[:], tmp[:16])
 	s := syscall_SyscallN(fn, tmp[:], floats[:], 0)
 	defer thePool.Put(s)
-	// This file never builds on darwin and the Linux architectures that use the
-	// C fallback, so the trampoline never saves errno here. Returning s.a3 would
-	// echo the caller's third argument back as a fake error code.
-	return s.a1, s.a2, 0
+	return s.a1, s.a2, s.a3
 }

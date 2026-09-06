@@ -69,8 +69,5 @@ func SyscallN(fn uintptr, args ...uintptr) (r1, r2, err uintptr) {
 	copy(floats[:], tmp[:])
 	s := syscall_SyscallN(fn, tmp[:], floats[:], 0)
 	defer thePool.Put(s)
-	// This file only builds on linux, where the trampoline never saves
-	// errno. Returning s.a3 here would echo the caller's third argument
-	// back as a fake error code.
-	return s.a1, s.a2, 0
+	return s.a1, s.a2, s.a3
 }

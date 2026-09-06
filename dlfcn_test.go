@@ -51,7 +51,7 @@ func TestSyscallN(t *testing.T) {
 }
 
 func TestSyscallNErrnoIsNotAnInputArgument(t *testing.T) {
-	if purego.CapturesErrno {
+	if errnoIsCaptured() {
 		t.Skip("this platform saves errno; see TestErrno")
 	}
 
