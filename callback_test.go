@@ -187,14 +187,16 @@ func TestNewCallbackUint64Result(t *testing.T) {
 func TestNewCallbackInt64ResultWithStackArgs(t *testing.T) {
 	// On 386 all the arguments are passed on the stack, so this also checks
 	// that the copied arguments do not overlap the result of the callback.
-	const wantSum = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20
-	imp := purego.NewCallback(func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20 int) int64 {
-		return int64(a1+a2+a3+a4+a5+a6+a7+a8+a9+a10+a11+a12+a13+a14+a15+a16+a17+a18+a19+a20)<<32 | 0x0badf00d
+	// The number of arguments is kept small enough for ppc64le, which only
+	// has maxArgs(15) slots in total, 8 of them in integer registers.
+	const wantSum = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12
+	imp := purego.NewCallback(func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 int) int64 {
+		return int64(a1+a2+a3+a4+a5+a6+a7+a8+a9+a10+a11+a12)<<32 | 0x0badf00d
 	})
-	var fn func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20 int) int64
+	var fn func(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 int) int64
 	purego.RegisterFunc(&fn, imp)
 	const want = int64(wantSum)<<32 | 0x0badf00d
-	if got := fn(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20); got != want {
+	if got := fn(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12); got != want {
 		t.Errorf("callback() = %#x, want %#x", uint64(got), uint64(want))
 	}
 }
