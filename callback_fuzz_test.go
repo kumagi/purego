@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -196,14 +197,34 @@ func cfzAlignUp(off, align uintptr) uintptr {
 
 var cfzCompileMu sync.Mutex
 
+var cfzCCOnce = struct {
+	sync.Once
+	cc string
+}{}
+
+// cfzCC returns the C compiler buildSharedLib will use. It is part of the
+// cache key below: the same GOARCH can be built with different compilers
+// (e.g. CI arm hard-float vs soft-float on one runner sharing /tmp).
+func cfzCC() string {
+	cfzCCOnce.Do(func() {
+		out, err := exec.Command("go", "env", "CC").Output()
+		if err != nil {
+			return
+		}
+		cfzCCOnce.cc = strings.TrimSpace(string(out))
+	})
+	return cfzCCOnce.cc
+}
+
 // cfzCachedLib compiles csrc once per content hash and returns the cached
 // shared library path, compiling to a temp file first so parallel fuzz
-// workers never observe a partially written .so. GOOS/GOARCH are part of
-// the key: shared /tmp (e.g. CI minor-arches running several QEMU targets
-// in sequence on one runner) must never hand another arch's .so to Dlopen.
+// workers never observe a partially written .so. GOOS/GOARCH and the C
+// compiler are part of the key: shared /tmp (e.g. CI minor-arches running
+// several QEMU targets in sequence on one runner, or arm hard/soft-float
+// back to back) must never hand another toolchain's .so to Dlopen.
 func cfzCachedLib(t *testing.T, csrc string) (string, error) {
 	t.Helper()
-	sum := sha256.Sum256([]byte("cfzv1\n" + runtime.GOOS + "/" + runtime.GOARCH + "\n" + csrc))
+	sum := sha256.Sum256([]byte("cfzv1\n" + runtime.GOOS + "/" + runtime.GOARCH + "\nCC=" + cfzCC() + "\n" + csrc))
 	name := fmt.Sprintf("cfz%x", sum[:8])
 	dir := filepath.Join(os.TempDir(), "purego-cfz")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
