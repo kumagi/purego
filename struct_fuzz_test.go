@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -193,14 +194,34 @@ func sfzHexdump(b []byte) string {
 
 var sfzCompileMu sync.Mutex
 
+var sfzCCOnce = struct {
+	sync.Once
+	cc string
+}{}
+
+// sfzCC returns the C compiler buildSharedLib will use. It is part of the
+// cache key below: the same GOARCH can be built with different compilers
+// (e.g. CI arm hard-float vs soft-float on one runner sharing /tmp).
+func sfzCC() string {
+	sfzCCOnce.Do(func() {
+		out, err := exec.Command("go", "env", "CC").Output()
+		if err != nil {
+			return
+		}
+		sfzCCOnce.cc = strings.TrimSpace(string(out))
+	})
+	return sfzCCOnce.cc
+}
+
 // sfzCachedLib compiles csrc once per content hash and returns the cached
 // shared library path. The version prefix keeps stale cache entries from an
-// older generator from being reused. GOOS/GOARCH are part of the key:
-// shared /tmp (e.g. CI minor-arches running loong64, ppc64le, ... in
-// sequence on one runner) must never hand another arch's .so to Dlopen.
+// older generator from being reused. GOOS/GOARCH and the C compiler are part
+// of the key: shared /tmp (e.g. CI minor-arches running loong64, ppc64le,
+// ... in sequence on one runner, or arm hard/soft-float back to back) must
+// never hand another toolchain's .so to Dlopen.
 func sfzCachedLib(t *testing.T, csrc string) (string, error) {
 	t.Helper()
-	sum := sha256.Sum256([]byte("sfzv1\n" + runtime.GOOS + "/" + runtime.GOARCH + "\n" + csrc))
+	sum := sha256.Sum256([]byte("sfzv1\n" + runtime.GOOS + "/" + runtime.GOARCH + "\nCC=" + sfzCC() + "\n" + csrc))
 	name := fmt.Sprintf("sfz%x", sum[:8])
 	dir := filepath.Join(os.TempDir(), "purego-sfz")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
