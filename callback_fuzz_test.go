@@ -198,10 +198,12 @@ var cfzCompileMu sync.Mutex
 
 // cfzCachedLib compiles csrc once per content hash and returns the cached
 // shared library path, compiling to a temp file first so parallel fuzz
-// workers never observe a partially written .so.
+// workers never observe a partially written .so. GOOS/GOARCH are part of
+// the key: shared /tmp (e.g. CI minor-arches running several QEMU targets
+// in sequence on one runner) must never hand another arch's .so to Dlopen.
 func cfzCachedLib(t *testing.T, csrc string) (string, error) {
 	t.Helper()
-	sum := sha256.Sum256([]byte("cfzv1\n" + csrc))
+	sum := sha256.Sum256([]byte("cfzv1\n" + runtime.GOOS + "/" + runtime.GOARCH + "\n" + csrc))
 	name := fmt.Sprintf("cfz%x", sum[:8])
 	dir := filepath.Join(os.TempDir(), "purego-cfz")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
