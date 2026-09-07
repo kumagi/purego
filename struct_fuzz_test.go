@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || netbsd || windows
+//go:build (darwin || linux || windows) && (amd64 || arm64 || loong64 || ppc64le)
 
 package purego_test
 
@@ -12,13 +12,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/internal/load"
 )
 
 // FuzzStructRoundTrip fuzzes RegisterFunc struct round trips through the real
@@ -190,22 +190,6 @@ func sfzHexdump(b []byte) string {
 	return s.String()
 }
 
-// sfzStructSupported mirrors ensureStructSupported: only these platforms move
-// structs through RegisterFunc at all.
-func sfzStructSupported() bool {
-	switch runtime.GOARCH {
-	case "amd64", "arm64", "loong64", "ppc64le":
-	default:
-		return false
-	}
-	switch runtime.GOOS {
-	case "android", "darwin", "ios", "linux", "windows":
-	default:
-		return false
-	}
-	return true
-}
-
 var sfzCompileMu sync.Mutex
 
 // sfzCachedLib compiles csrc once per content hash and returns the cached
@@ -256,9 +240,6 @@ func FuzzStructRoundTrip(f *testing.F) {
 	if os.Getenv("PUREGO_TEST_PREBUILT_LIBDIR") != "" {
 		f.Skip("generates C sources at run time, needs a local C toolchain")
 	}
-	if !sfzStructSupported() {
-		f.Skip("struct arguments/returns are unsupported on this platform")
-	}
 	// Seed corpus. Every seed below was verified green on main: plain
 	// `go test` must stay green, new shapes are explored under -fuzz.
 	for _, s := range [][]byte{
@@ -294,11 +275,11 @@ func FuzzStructRoundTrip(f *testing.F) {
 		if err != nil {
 			t.Fatalf("compile: %v", err)
 		}
-		handle, err := purego.Dlopen(lib, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+		handle, err := load.OpenLibrary(lib)
 		if err != nil {
 			t.Fatalf("Dlopen: %v", err)
 		}
-		defer purego.Dlclose(handle)
+		defer load.CloseLibrary(handle)
 
 		var size func() uintptr
 		purego.RegisterLibFunc(&size, handle, "sfzsize")
