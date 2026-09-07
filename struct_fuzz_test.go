@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -194,10 +195,12 @@ var sfzCompileMu sync.Mutex
 
 // sfzCachedLib compiles csrc once per content hash and returns the cached
 // shared library path. The version prefix keeps stale cache entries from an
-// older generator from being reused.
+// older generator from being reused. GOOS/GOARCH are part of the key:
+// shared /tmp (e.g. CI minor-arches running loong64, ppc64le, ... in
+// sequence on one runner) must never hand another arch's .so to Dlopen.
 func sfzCachedLib(t *testing.T, csrc string) (string, error) {
 	t.Helper()
-	sum := sha256.Sum256([]byte("sfzv1\n" + csrc))
+	sum := sha256.Sum256([]byte("sfzv1\n" + runtime.GOOS + "/" + runtime.GOARCH + "\n" + csrc))
 	name := fmt.Sprintf("sfz%x", sum[:8])
 	dir := filepath.Join(os.TempDir(), "purego-sfz")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
