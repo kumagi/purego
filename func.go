@@ -73,7 +73,7 @@ func RegisterLibFunc(fptr any, handle uintptr, name string) {
 //	unsafe.Pointer, *T <=> void*
 //	[]T => void*
 //
-// There is a special case when the last argument of fptr is a variadic interface (or []interface}
+// There is a special case when the last argument of fptr is a variadic interface (or []any)
 // it will be expanded into a call to the C function as if it had the arguments in that slice.
 // This means that using arg ...any is like a cast to the function with the arguments inside arg.
 // This is not the same as C variadic.
