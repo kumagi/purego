@@ -181,6 +181,60 @@ func TestRegisterLibFunc_Bool(t *testing.T) {
 	}
 }
 
+func TestNewCallback_NotAFunction(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		fn   any
+	}{
+		{"nil", nil},
+		{"int", 42},
+		{"string", "not a function"},
+		{"pointer", new(int)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Fatal("NewCallback did not panic")
+				}
+				const want = "purego: the type must be a function but was not"
+				if got := fmt.Sprint(r); got != want {
+					t.Fatalf("panic mismatch:\n  got:  %q\n  want: %q", got, want)
+				}
+			}()
+			purego.NewCallback(tc.fn)
+		})
+	}
+}
+
+func TestRegisterFunc_InvalidFunctionPointer(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		fptr any
+		want string
+	}{
+		{"nil", nil, "purego: fptr must be a non-nil function pointer"},
+		{"non_pointer", 42, "purego: fptr must be a non-nil function pointer"},
+		{"function_value", func() {}, "purego: fptr must be a non-nil function pointer"},
+		{"nil_function_pointer", (*func())(nil), "purego: fptr must be a non-nil function pointer"},
+		{"pointer_to_non_function", new(int), "purego: fptr must be a function pointer"},
+		{"pointer_to_function_pointer", new(*func()), "purego: fptr must be a function pointer"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Fatal("RegisterFunc did not panic")
+				}
+				if got := fmt.Sprint(r); got != tc.want {
+					t.Fatalf("panic mismatch:\n  got:  %q\n  want: %q", got, tc.want)
+				}
+			}()
+			purego.RegisterFunc(tc.fptr, 1)
+		})
+	}
+}
+
 func TestABI(t *testing.T) {
 	libFileName := filepath.Join(t.TempDir(), "abitest.so")
 	t.Logf("Build %v", libFileName)
