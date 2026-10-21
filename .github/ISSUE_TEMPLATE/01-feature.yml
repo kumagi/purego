@@ -1,8 +1,7 @@
 name: Feature Request
 description: Provide details about a feature you'd like to see.
 labels:
-- feature
-- request
+- enhancement
 body:
 - type: checkboxes
   id: os
