@@ -198,10 +198,14 @@ func genasmRiscv64() {
 
 // External code calls into callbackasm at an offset corresponding
 // to the callback index. Callbackasm is a table of MOV and JMP instructions.
-// Since Go 1.26, MOV instructions with immediate values lower than or equal to 32
-// are encoded in 2 bytes rather than 4 bytes, which breaks the assumption that each
-// callback entry is 8 bytes long. Therefore, for callback indices less than or equal to 32,
-// add a PCALIGN directive to align the next instruction to an 8-byte boundary.
+// Since Go 1.26, MOV instructions with an immediate value that fits in the
+// compressed c.addi range of -32 to 31 are encoded in 2 bytes rather than 4 bytes,
+// which breaks the assumption that each callback entry is 8 bytes long. Therefore,
+// for callback indices up to and including 32, add a PCALIGN directive to align the
+// next instruction to an 8-byte boundary. The entry with the index 32 is already
+// 8 bytes long because 32 is outside the compressed range, but it still needs the
+// padding: the entry before it is only 6 bytes long, so without the alignment
+// every later entry would start two bytes too early.
 // The MOV instruction loads X7 with the callback index, and the
 // JMP instruction branches to callbackasm1.
 // callbackasm1 takes the callback index from X7 and
@@ -213,6 +217,8 @@ TEXT callbackasm(SB), NOSPLIT|NOFRAME, $0
 `)
 	for i := range maxCallback {
 		space := " "
+		// The padding is needed up to and including the index 32, even though
+		// that entry is not encoded in the compressed form.
 		if i <= 32 {
 			fmt.Fprintf(&buf, "\tPCALIGN $8\n")
 			space = "     "
