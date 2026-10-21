@@ -10,6 +10,8 @@
 
 echo "Running tests on $(uname -a) at $PWD"
 
+: "${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is not set}"
+
 PATH=$PATH:/usr/local/go/bin/
 
 # verify Go is available
@@ -58,12 +60,12 @@ echo 'import (' >> main.go
 echo '  _ "github.com/ebitengine/purego"' >> main.go
 echo ')' >> main.go
 echo 'func main() {}' >> main.go
-go mod edit -replace github.com/ebitengine/purego=$GITHUB_WORKSPACE
+go mod edit -replace github.com/ebitengine/purego="$GITHUB_WORKSPACE"
 go mod tidy
 go mod vendor
 go build -v .
 
-cd $GITHUB_WORKSPACE
+cd "$GITHUB_WORKSPACE"
 echo "=> go test CGO_ENABLED=0"
 env CGO_ENABLED=0 go test -gcflags="github.com/ebitengine/purego/internal/fakecgo=-std" -shuffle=on -v -count=10 ./...
 

@@ -323,7 +323,7 @@ jobs:
           prepare: |
             fetch https://go.dev/dl/go${{matrix.go}}.freebsd-amd64.tar.gz
             rm -fr /usr/local/go && tar -C /usr/local -xf go${{matrix.go}}.freebsd-amd64.tar.gz
-            chmod +x $GITHUB_WORKSPACE/.github/scripts/bsd_tests.sh
+            chmod +x "$GITHUB_WORKSPACE/.github/scripts/bsd_tests.sh"
           run: $GITHUB_WORKSPACE/.github/scripts/bsd_tests.sh
       - name: Run in NetBSD
         if: matrix.os == 'NetBSD'
@@ -334,7 +334,7 @@ jobs:
             ftp https://go.dev/dl/go${{matrix.go}}.netbsd-amd64.tar.gz
             mkdir /usr/local
             rm -fr /usr/local/go && tar -C /usr/local -xf go${{matrix.go}}.netbsd-amd64.tar.gz
-            chmod +x $GITHUB_WORKSPACE/.github/scripts/bsd_tests.sh
+            chmod +x "$GITHUB_WORKSPACE/.github/scripts/bsd_tests.sh"
           run: $GITHUB_WORKSPACE/.github/scripts/bsd_tests.sh
 
   # Android is tested on amd64 only. The emulator requires the system image
