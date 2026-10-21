@@ -51,7 +51,7 @@ func BenchmarkCallingMethods(b *testing.B) {
 	}
 	b.Cleanup(func() {
 		if err := load.CloseLibrary(libHandle); err != nil {
-			b.Fatalf("Failed to close library: %s", err)
+			b.Errorf("Failed to close library: %s", err)
 		}
 	})
 
