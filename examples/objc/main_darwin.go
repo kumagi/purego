@@ -55,5 +55,5 @@ func main() {
 	object.Send(sel_setBar, 123)
 	bar := int(object.Send(sel_bar))
 	fmt.Println(bar)
-	// Output: 123
+	// Prints the value of the bar property, which is 123.
 }
