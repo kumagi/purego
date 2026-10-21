@@ -178,6 +178,11 @@ func imports(symbols []Symbol) string {
 				imports[pkg] = struct{}{}
 			}
 		}
+		// The template also emits the result type, so it needs its package.
+		if pkg, _, found := strings.Cut(s.Return, "."); found {
+			pkg = strings.TrimPrefix(pkg, "*")
+			imports[pkg] = struct{}{}
+		}
 	}
 	if len(imports) == 1 {
 		return `import "unsafe"`
